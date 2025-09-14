@@ -2,6 +2,25 @@
 
 set -e
 
+# Parse command line arguments
+DEV_MODE=false
+DOCKER_FILES_DIR=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dev)
+            DEV_MODE=true
+            DOCKER_FILES_DIR="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--dev /path/to/docker/files]"
+            exit 1
+            ;;
+    esac
+done
+
 # Check if we have OAuth credentials or API key
 if [ ! -f "$HOME/.claude/.credentials.json" ] && [ -z "$CLAUDE_API_KEY" ]; then
     echo "Warning: No authentication found"
@@ -12,10 +31,24 @@ if [ ! -f "$HOME/.claude/.credentials.json" ] && [ -z "$CLAUDE_API_KEY" ]; then
     echo "Continuing anyway - Claude will prompt for authentication if needed"
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Set Docker files directory
+if [ "$DEV_MODE" = true ]; then
+    if [ -z "$DOCKER_FILES_DIR" ]; then
+        echo "Error: --dev flag requires a directory path"
+        exit 1
+    fi
+    if [ ! -d "$DOCKER_FILES_DIR" ]; then
+        echo "Error: Directory $DOCKER_FILES_DIR does not exist"
+        exit 1
+    fi
+    echo "Using dev mode with Docker files from: $DOCKER_FILES_DIR"
+else
+    DOCKER_FILES_DIR="$HOME/apps/claude-docker"
+fi
+
 CURRENT_DIR="$(pwd)"
 
-cd "$SCRIPT_DIR"
+cd "$DOCKER_FILES_DIR"
 
 export CODE_PATH="$CURRENT_DIR"
 export USER_UID=$(id -u)
