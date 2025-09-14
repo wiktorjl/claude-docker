@@ -1,0 +1,52 @@
+#!/bin/bash
+
+set -e
+
+# Check if we have OAuth credentials or API key
+if [ ! -f "$HOME/.claude/.credentials.json" ] && [ -z "$CLAUDE_API_KEY" ]; then
+    echo "Warning: No authentication found"
+    echo "Either:"
+    echo "  - Make sure ~/.claude directory exists with OAuth credentials, or"
+    echo "  - Set CLAUDE_API_KEY environment variable"
+    echo ""
+    echo "Continuing anyway - Claude will prompt for authentication if needed"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CURRENT_DIR="$(pwd)"
+
+cd "$SCRIPT_DIR"
+
+export CODE_PATH="$CURRENT_DIR"
+export USER_UID=$(id -u)
+export USER_GID=$(id -g)
+
+# Create shared Claude config if it doesn't exist
+if [ ! -d "$HOME/claude-docker-config" ]; then
+    echo "Creating shared Claude Docker configuration..."
+    mkdir -p "$HOME/claude-docker-config"
+
+    # Copy your existing config as a starting point
+    if [ -f "$HOME/.claude/.credentials.json" ]; then
+        cp "$HOME/.claude/.credentials.json" "$HOME/claude-docker-config/"
+        echo "Copied OAuth credentials"
+    fi
+
+    if [ -f "$HOME/.claude/settings.json" ]; then
+        cp "$HOME/.claude/settings.json" "$HOME/claude-docker-config/"
+        echo "Copied settings"
+    fi
+
+    if [ -f "$HOME/.claude.json" ]; then
+        cp "$HOME/.claude.json" "$HOME/claude-docker-config/"
+        echo "Copied .claude.json"
+    fi
+
+    echo "Shared Docker config directory created at ~/claude-docker-config"
+fi
+
+# Build the image first
+docker compose build
+
+# Run interactively with proper terminal forwarding
+docker compose run --rm claude-code
