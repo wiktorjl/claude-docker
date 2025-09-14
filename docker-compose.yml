@@ -1,0 +1,18 @@
+services:
+  claude-code:
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_UID:-1000}
+        GROUP_ID: ${USER_GID:-1000}
+    container_name: claude-code-${USER:-user}
+    volumes:
+      - "${CODE_PATH:-$(pwd)}:/code"
+      - "$HOME/claude-docker-config:/home/claude/.claude"
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+      - TERM=${TERM:-xterm-256color}
+    stdin_open: true
+    tty: true
+    restart: "no"
+    working_dir: /code
